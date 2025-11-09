@@ -11,7 +11,11 @@
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "lint-staged": "lint-staged",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:rls": "node scripts/apply-rls-migration.mjs",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

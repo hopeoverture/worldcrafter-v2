@@ -9,8 +9,11 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String   @id @db.Uuid // References auth.users(id) from Supabase Auth
   email     String   @unique
   name      String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users") // Map to 'users' table in public schema
 }

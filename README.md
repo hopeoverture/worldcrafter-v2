@@ -70,21 +70,23 @@ npm install
    a. Create a new project at [https://supabase.com/dashboard](https://supabase.com/dashboard)
 
    b. Go to **Project Settings** → **API** and copy:
-      - Project URL
-      - `anon` `public` key
+   - Project URL
+   - `anon` `public` key
 
    c. Go to **Project Settings** → **Database** and copy:
-      - Connection string (Transaction pooler mode)
-      - Connection string (Session pooler mode - for migrations)
+   - Connection string (Transaction pooler mode)
+   - Connection string (Session pooler mode - for migrations)
 
 4. **Configure environment variables:**
 
    Copy `.env.example` to `.env`:
+
    ```bash
    cp .env.example .env
    ```
 
    Update `.env` with your Supabase credentials:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
    NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
@@ -95,16 +97,28 @@ npm install
 5. **Set up the database:**
 
    Push your Prisma schema to Supabase:
+
    ```bash
    npx prisma db push
    ```
 
    Or create a migration:
+
    ```bash
    npx prisma migrate dev --name init
    ```
 
-6. **Run the development server:**
+6. **Apply Row-Level Security (RLS) policies:**
+
+   Enable RLS on your database tables for security:
+
+   ```bash
+   npm run db:rls
+   ```
+
+   This sets up database-level security policies. See [RLS Setup Guide](./docs/RLS_SETUP.md) for details.
+
+7. **Run the development server:**
 
    ```bash
    npm run dev
@@ -132,9 +146,11 @@ npm install
 
 ### Database
 
+- `npm run db:migrate` - Create and apply migrations
+- `npm run db:push` - Push schema changes to database
+- `npm run db:rls` - Apply Row-Level Security policies
+- `npm run db:studio` - Open Prisma Studio GUI
 - `npx prisma generate` - Generate Prisma Client
-- `npx prisma migrate dev` - Create and apply migrations
-- `npx prisma studio` - Open Prisma Studio GUI
 
 ## Project Structure
 
@@ -202,7 +218,9 @@ export default function ClientComponent() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
     };
     getUser();
@@ -219,7 +237,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function ServerComponent() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   return <div>User: {user?.email}</div>;
 }
@@ -252,16 +272,41 @@ export async function signIn(email: string, password: string) {
 You can use either Supabase client or Prisma for database operations:
 
 **Using Supabase:**
+
 ```tsx
-const { data } = await supabase.from('users').select('*');
+const { data } = await supabase.from("users").select("*");
 ```
 
 **Using Prisma (Recommended for complex queries):**
+
 ```tsx
 import { prisma } from "@/lib/prisma";
 
 const users = await prisma.user.findMany();
 ```
+
+## Security
+
+### Row-Level Security (RLS)
+
+This project uses **Supabase Row-Level Security (RLS)** to enforce database-level access control. RLS ensures that:
+
+- Users can only access data they're authorized to see
+- Security policies are enforced at the database level (not just in application code)
+- Even if someone bypasses your API, your data remains protected
+
+**Current RLS Policies:**
+
+- ✅ Users can read their own profile
+- ✅ Users can update their own profile
+- ✅ Auto-sync with Supabase Auth
+
+**Learn more:**
+
+- Read the [RLS Setup Guide](./docs/RLS_SETUP.md) for detailed documentation
+- Apply RLS policies: `npm run db:rls`
+
+**Important:** Always enable RLS on tables containing user data. See the setup guide for examples of common RLS patterns.
 
 ## Testing Strategy
 
@@ -303,12 +348,14 @@ This template is optimized for deployment on Vercel with Supabase as the backend
 #### 1. Deploy to Vercel
 
 **Option A: Using Vercel CLI**
+
 ```bash
 npm i -g vercel
 vercel
 ```
 
 **Option B: Using Vercel Dashboard**
+
 1. Push your code to GitHub
 2. Go to [vercel.com](https://vercel.com) and import your repository
 3. Vercel will auto-detect Next.js settings
