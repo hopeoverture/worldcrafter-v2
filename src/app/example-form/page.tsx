@@ -14,9 +14,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { createUserPublic } from "./actions";
 
 export default function ExampleFormPage() {
-  const [submitted, setSubmitted] = useState<UserFormValues | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<{
+    success: boolean;
+    message?: string;
+    data?: UserFormValues;
+    error?: string;
+  } | null>(null);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -26,8 +33,27 @@ export default function ExampleFormPage() {
     },
   });
 
-  function onSubmit(values: UserFormValues) {
-    setSubmitted(values);
+  async function onSubmit(values: UserFormValues) {
+    setIsLoading(true);
+    setResult(null);
+
+    try {
+      // Call Server Action
+      const response = await createUserPublic(values);
+      setResult(response);
+
+      if (response.success) {
+        // Reset form on success
+        form.reset();
+      }
+    } catch (error) {
+      setResult({
+        success: false,
+        error: "An unexpected error occurred",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -62,13 +88,30 @@ export default function ExampleFormPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit">Submit</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Submitting..." : "Submit"}
+            </Button>
           </form>
         </Form>
-        {submitted && (
-          <pre className="mt-4 rounded bg-muted p-2 text-sm">
-            {JSON.stringify(submitted, null, 2)}
-          </pre>
+
+        {/* Success Message */}
+        {result?.success && (
+          <div className="rounded-md bg-green-50 p-4 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+            <p className="font-medium">{result.message || "Success!"}</p>
+            {result.data && (
+              <pre className="mt-2 text-sm">
+                {JSON.stringify(result.data, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+
+        {/* Error Message */}
+        {result?.error && (
+          <div className="rounded-md bg-red-50 p-4 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+            <p className="font-medium">Error</p>
+            <p className="text-sm">{result.error}</p>
+          </div>
         )}
       </div>
     </main>

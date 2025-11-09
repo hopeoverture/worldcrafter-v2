@@ -20,9 +20,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Testing
 
+**Unit & Integration Tests:**
+
 - `npm test` - Run Vitest unit tests in watch mode
-- `npm run test:e2e` - Run Playwright E2E tests with Chromium
+- `npm run test:coverage` - Run tests with coverage report (80% threshold)
+- `npm run test:ui` - Open Vitest UI for interactive testing
 - `vitest related --run` - Run tests related to changed files (used in pre-commit)
+
+**End-to-End Tests:**
+
+- `npm run test:e2e` - Run Playwright E2E tests (Chromium, Firefox, Mobile)
+- `npm run test:e2e:ui` - Open Playwright UI for debugging tests
+
+**Test Database:**
+
+- `npm run db:test:sync` - Sync schema to test database (recommended workflow)
+- `npm run db:test:sync -- --seed` - Sync schema and seed test data in one command
+- `npm run db:test:push` - Push Prisma schema to test database
+- `npm run db:test:seed` - Seed test database with sample data
+
+**Setting up Test Database:**
+See [Test Database Setup Guide](docs/TEST_DATABASE_SETUP.md) for complete instructions on creating a separate Supabase project for testing
+
+**All Tests:**
+
+- `npm run test:all` - Run all tests with coverage (unit + integration + E2E)
 
 ### Code Quality
 
@@ -123,42 +145,151 @@ Standard form workflow in this codebase:
 4. Submit to Server Action (preferred) or API route
 5. Server validates again with same Zod schema before processing
 
-**Example**:
+**Complete Example**:
+
+See `src/app/example-form/` for a full implementation with:
+
+- Schema: `src/lib/schemas/user.ts`
+- Server Action: `src/app/example-form/actions.ts`
+- Client Component: `src/app/example-form/page.tsx`
+- Integration Test: `src/app/__tests__/example-form.integration.test.ts`
 
 ```typescript
-// Schema
-export const userSchema = z.object({
+// 1. Schema (src/lib/schemas/user.ts)
+export const userFormSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
 });
 
-// Component
-const form = useForm<z.infer<typeof userSchema>>({
-  resolver: zodResolver(userSchema),
+export type UserFormValues = z.infer<typeof userFormSchema>;
+
+// 2. Server Action (src/app/example-form/actions.ts)
+("use server");
+export async function submitUserForm(values: UserFormValues) {
+  const validated = userFormSchema.parse(values);
+  // Database operation...
+  return { success: true, data: validated };
+}
+
+// 3. Client Component (src/app/example-form/page.tsx)
+("use client");
+const form = useForm<UserFormValues>({
+  resolver: zodResolver(userFormSchema),
 });
+
+async function onSubmit(values: UserFormValues) {
+  const result = await submitUserForm(values);
+  // Handle result...
+}
 ```
 
 ### Testing Strategy
 
-**Unit Tests** (Vitest + React Testing Library):
+WorldCrafter uses a **three-layer testing pyramid** for comprehensive coverage:
 
-- Located in `src/components/__tests__/`
-- Use `jsdom` environment for React component tests
-- **Limitation**: Cannot test async Server Components (test behavior via E2E instead)
-- Run on every commit via Husky pre-commit hook
+**1. Unit Tests** (Vitest + React Testing Library) - 60-70% of tests:
 
-**E2E Tests** (Playwright):
+- **Location**: `src/components/__tests__/`, `src/lib/__tests__/`, `src/app/__tests__/`
+- **Purpose**: Test components, utilities, and pure functions in isolation
+- **Environment**: `jsdom` for React component testing
+- **Test Utilities**: Use `renderWithProviders()` from `@/test/utils/render` for components
+- **Mocking**: Supabase and Prisma clients are mocked (see `src/test/mocks/`)
+- **Data Factories**: Use factories from `src/test/factories/` for test data generation
+- **Limitation**: Cannot test async Server Components (use E2E or integration tests instead)
+- **Coverage Goal**: 80%+ (enforced by Vitest coverage thresholds)
 
-- Located in `e2e/` directory
-- Tests full user flows in real browser (Chromium)
-- Playwright auto-starts dev server on localhost:3000
-- Use for critical paths: auth flows, CRUD operations, multi-step workflows
+**2. Integration Tests** (Vitest + Real Test Database) - 20-30% of tests:
+
+- **Location**: `src/app/__tests__/*.integration.test.ts`
+- **Example**: `src/app/__tests__/example-form.integration.test.ts` - Server Action testing pattern
+- **Purpose**: Test Server Actions, database operations, and API routes with real database
+- **Database**: Uses separate test database (configured in `.env.test`)
+- **Setup**: Runs `beforeAll`/`afterAll` hooks for database seeding and cleanup
+- **Best for**: Testing database queries, RLS policies, Server Actions, complex data flows
+- **Important**: Always clean up test data after tests complete
+
+**3. E2E Tests** (Playwright) - 10-20% of tests:
+
+- **Location**: `e2e/` directory with `*.spec.ts` files
+- **Purpose**: Test complete user flows in real browsers
+- **Browsers**: Chromium, Firefox, and Mobile (iPhone 13) viewports
+- **Page Objects**: Use Page Object Models from `e2e/pages/` for maintainability
+- **Auto-start**: Playwright automatically starts dev server on localhost:3000
+- **Best for**: Critical paths (auth flows, form submissions, navigation, multi-step workflows)
+- **CI/CD**: Tests against production build in CI for realistic testing
+
+**Test Data Management**:
+
+- **Factories**: `src/test/factories/user.ts` - Use `createMockUser()` for test data
+- **Fixtures**: `src/test/fixtures/` - Static test data (JSON files)
+- **Seeding**: `npm run db:test:seed` - Seed test database with sample data
+- **Mocks**: `src/test/mocks/` - Mock Supabase/Prisma for unit tests
+
+**Testing Best Practices**:
+
+1. **Query Priority**: Use role-based queries (`getByRole`) over test IDs or classes
+2. **Test Behavior**: Test what users see/do, not implementation details
+3. **Isolation**: Each test should be independent and not rely on other tests
+4. **Cleanup**: Use `beforeEach`/`afterEach` for proper setup/teardown
+5. **Coverage**: Aim for 80%+ overall, 100% for utilities and critical business logic
+6. **Pre-commit**: Tests run automatically on staged files before commit
+7. **Server Components**: Test via E2E or integration tests, not unit tests
+
+**Writing Tests - Examples**:
+
+```typescript
+// Unit Test (Component)
+import { renderWithProviders, screen } from '@/test/utils/render';
+
+test('renders button', () => {
+  renderWithProviders(<Button>Click me</Button>);
+  expect(screen.getByRole('button')).toBeInTheDocument();
+});
+
+// Integration Test (Database)
+import { prisma } from '@/lib/prisma';
+import { createMockUser } from '@/test/factories/user';
+
+test('creates user in database', async () => {
+  const user = await prisma.user.create({
+    data: createMockUser({ email: 'test@example.com' })
+  });
+  expect(user).toBeDefined();
+});
+
+// E2E Test (User Flow)
+import { HomePage } from './pages/home.page';
+
+test('homepage loads correctly', async ({ page }) => {
+  const home = new HomePage(page);
+  await home.goto();
+  await expect(home.heading).toBeVisible();
+});
+```
+
+**Test Environment Setup**:
+
+- **Unit/Integration**: Uses `.env.test` for test database credentials
+- **E2E**: Uses dev environment by default, production build in CI
+- **Database**: Separate Supabase project or local Supabase instance for testing
+- **Coverage**: HTML reports generated in `coverage/` directory
+
+**For detailed testing setup and implementation guide, see `docs/TESTING_CHECKLIST.md`**
 
 ### Project Structure
 
 ```
 src/
 ├── app/                    # Next.js App Router pages and layouts
+│   ├── __tests__/         # Integration tests for Server Actions
+│   │   └── example-form.integration.test.ts  # Example integration test
+│   ├── example-form/      # Example form route with complete patterns
+│   │   ├── actions.ts     # Server Actions example
+│   │   ├── error.tsx      # Route-specific error boundary
+│   │   ├── loading.tsx    # Route-specific loading state
+│   │   └── page.tsx       # Form page component
+│   ├── error.tsx          # Root error boundary
+│   ├── loading.tsx        # Root loading state
 │   ├── layout.tsx         # Root layout (providers, global styles)
 │   ├── page.tsx           # Homepage route
 │   └── [route]/page.tsx   # Other routes
@@ -175,17 +306,29 @@ src/
 │   ├── env.ts             # Server-side env variable loader
 │   ├── prisma.ts          # Prisma client singleton
 │   └── utils.ts           # Utility functions (cn, etc.)
+├── test/                   # Testing utilities and mocks
+│   ├── utils/             # Test helpers (renderWithProviders, etc.)
+│   ├── mocks/             # Mock implementations (Supabase, Prisma, Next.js)
+│   ├── factories/         # Test data factories (createMockUser, etc.)
+│   └── fixtures/          # Static test data (JSON files)
 └── middleware.ts          # Next.js middleware (auth session refresh)
+
+e2e/                        # Playwright E2E tests
+├── pages/                 # Page Object Models (POM)
+└── *.spec.ts              # E2E test files
 
 prisma/
 ├── schema.prisma          # Database schema
 └── migrations/            # Migration files
+    └── sql/               # Custom SQL migrations (RLS policies)
 
 scripts/
-└── apply-rls-migration.js # RLS policy setup script
+├── apply-rls-migration.mjs # RLS policy setup script
+└── seed-test-db.mjs        # Test database seeding script
 
 docs/
-├── RLS_SETUP.md           # Row-Level Security guide
+├── RLS_SETUP.md            # Row-Level Security guide
+├── TESTING_CHECKLIST.md    # Complete testing implementation guide
 └── Best Practices for Full-Stack Development with Next.md
 ```
 
@@ -229,12 +372,154 @@ if (!user) redirect("/login");
 - Performing mutations (create, update, delete)
 - Need direct database access with auth context
 - Want co-located logic with components
+- Building form submission handlers
 
 **Use API Routes when**:
 
 - Exposing data to external services
 - Need custom HTTP methods or headers
 - Building a public API
+- Webhooks or third-party integrations
+
+### Server Actions Pattern
+
+See `src/app/example-form/actions.ts` for a complete implementation. The standard pattern is:
+
+```typescript
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
+import { yourSchema } from "@/lib/schemas/your-schema";
+
+export async function yourServerAction(values: YourSchemaType) {
+  try {
+    // 1. Server-side validation (ALWAYS validate)
+    const validated = yourSchema.parse(values);
+
+    // 2. Authentication check (if required)
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // 3. Database operation
+    const result = await prisma.yourModel.create({
+      data: validated,
+    });
+
+    // 4. Revalidate cached pages
+    revalidatePath("/your-route");
+
+    // 5. Return typed response
+    return { success: true, data: result };
+  } catch (error) {
+    // Handle errors gracefully
+    return { success: false, error: "Operation failed" };
+  }
+}
+```
+
+**Client Usage**:
+
+```typescript
+"use client";
+
+import { yourServerAction } from "./actions";
+
+function YourComponent() {
+  async function handleSubmit(values) {
+    const result = await yourServerAction(values);
+
+    if (result.success) {
+      // Handle success
+    } else {
+      // Handle error: result.error
+    }
+  }
+
+  return <form onSubmit={handleSubmit}>...</form>;
+}
+```
+
+**Key Benefits**:
+
+- Type-safe communication between client and server
+- No need to create API routes
+- Automatic serialization of responses
+- Progressive enhancement support
+- Co-located with page components
+
+### Error Boundaries & Loading States
+
+WorldCrafter includes examples of Next.js error boundaries and loading states for better UX.
+
+**Error Boundaries**:
+
+Error boundaries catch React errors and display fallback UI. Next.js automatically uses `error.tsx` files:
+
+- `src/app/error.tsx` - Root error boundary (catches errors app-wide)
+- `src/app/example-form/error.tsx` - Route-specific error boundary
+
+**Pattern**:
+
+```typescript
+// error.tsx
+"use client";
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={() => reset()}>Try again</button>
+    </div>
+  );
+}
+```
+
+**Loading States**:
+
+Loading states provide visual feedback during navigation and data fetching. Next.js automatically uses `loading.tsx` files:
+
+- `src/app/loading.tsx` - Root loading state (shows during any page transition)
+- `src/app/example-form/loading.tsx` - Route-specific skeleton loader
+
+**Pattern**:
+
+```typescript
+// loading.tsx
+export default function Loading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary"></div>
+    </div>
+  );
+}
+```
+
+**Best Practices**:
+
+- **Root-level files**: Provide default error/loading UI for entire app
+- **Route-specific files**: Override defaults with contextual UI
+- **Skeleton loaders**: Match the layout of the actual content to prevent layout shift
+- **Error details**: Show error messages in development, hide in production
+- **Reset functionality**: Always provide a way to retry or navigate away
+
+**When to use**:
+
+- Error boundaries: Any route where errors might occur (forms, data fetching)
+- Loading states: Routes with async Server Components or slow data fetching
 
 ## Common Pitfalls
 
@@ -252,11 +537,15 @@ if (!user) redirect("/login");
 
 7. **Git hooks**: Pre-commit hooks run lint, tests, and format - fix errors before they block commits
 
+8. **Testing**: Use `.env.test` for test database configuration. Never run tests against production database. Always clean up test data in `afterAll` hooks
+
 ## Key Documentation Files
 
 - `README.md` - Setup instructions and tech stack overview
 - `SUPABASE_SETUP.md` - Detailed Supabase configuration guide
 - `docs/RLS_SETUP.md` - Row-Level Security patterns and implementation
+- `docs/TESTING_CHECKLIST.md` - Complete testing implementation guide with 4-week roadmap, best practices, and code examples
+- `docs/TEST_DATABASE_SETUP.md` - Step-by-step guide for setting up separate test database and keeping it in sync
 - `docs/Best Practices for Full-Stack Development with Next.md` - Comprehensive architecture patterns
 
 ## Package Manager

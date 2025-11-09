@@ -56,11 +56,8 @@ function main() {
   try {
     log('Applying RLS migration...', colors.blue);
 
-    // Read the SQL file
-    const sqlContent = fs.readFileSync(migrationFile, 'utf8');
-
-    // Execute the SQL using psql (requires PostgreSQL client to be installed)
-    execSync(`psql "${process.env.DIRECT_DATABASE_URL}" -c "${sqlContent.replace(/"/g, '\\"')}"`, {
+    // Execute the SQL file using psql -f (requires PostgreSQL client to be installed)
+    execSync(`psql "${process.env.DIRECT_DATABASE_URL}" -f "${migrationFile}"`, {
       stdio: 'inherit',
     });
 
