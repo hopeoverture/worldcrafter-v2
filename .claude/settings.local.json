@@ -1,6 +1,12 @@
 {
   "permissions": {
-    "allow": ["Bash(pnpm --version:*)"],
+    "allow": [
+      "Bash(pnpm --version:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:github.com)"
+    ],
     "deny": [],
     "ask": []
   }

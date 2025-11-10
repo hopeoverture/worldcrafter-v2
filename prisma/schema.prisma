@@ -15,5 +15,94 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  worlds     World[]
+  activities Activity[]
+
   @@map("users") // Map to 'users' table in public schema
+}
+
+model World {
+  id          String   @id @default(cuid())
+  userId      String   @db.Uuid
+  name        String   @db.VarChar(100)
+  slug        String   @unique
+  genre       Genre    @default(CUSTOM)
+  description String?  @db.Text
+  setting     String?  @db.VarChar(500)
+  metadata    Json?
+  coverUrl    String?
+  privacy     Privacy  @default(PRIVATE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations  Location[]
+  activities Activity[]
+
+  @@map("worlds")
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  worldId     String
+  name        String   @db.VarChar(100)
+  slug        String
+  type        String?  @db.VarChar(50)
+  parentId    String?
+  description String?  @db.Text
+  geography   String?  @db.Text
+  climate     String?  @db.VarChar(100)
+  population  String?  @db.VarChar(50)
+  government  String?  @db.VarChar(100)
+  economy     String?  @db.Text
+  culture     String?  @db.Text
+  coordinates Json?
+  attributes  Json?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world    World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  children Location[] @relation("LocationHierarchy")
+
+  @@unique([worldId, slug])
+  @@map("locations")
+}
+
+model Activity {
+  id         String     @id @default(cuid())
+  worldId    String
+  userId     String     @db.Uuid
+  entityType EntityType
+  entityId   String
+  action     String     @db.VarChar(20)
+  metadata   Json?
+  createdAt  DateTime   @default(now())
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([worldId, createdAt])
+  @@map("activities")
+}
+
+enum Genre {
+  FANTASY
+  SCIFI
+  MODERN
+  HISTORICAL
+  HORROR
+  CUSTOM
+}
+
+enum Privacy {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+enum EntityType {
+  WORLD
+  LOCATION
 }

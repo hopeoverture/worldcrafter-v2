@@ -1,0 +1,144 @@
+// Basic Model Template
+model ModelName {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("table_name")
+}
+
+// Model with User Relationship (One-to-Many)
+model UserPost {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_posts")
+}
+
+// Model with Multiple Relationships
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String   @map("author_id")
+  postId    String   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  author User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([postId])
+  @@map("comments")
+}
+
+// Model with Enum
+enum Status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  title     String
+  status    Status   @default(DRAFT)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("articles")
+}
+
+// Model with Optional Fields
+model Profile {
+  id        String   @id @default(cuid())
+  bio       String?  @db.Text
+  website   String?
+  avatarUrl String?  @map("avatar_url")
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+// Junction Table (Many-to-Many)
+model PostTag {
+  postId    String   @map("post_id")
+  tagId     String   @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+// Self-Referencing Model
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  parentId  String?    @map("parent_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  @@map("categories")
+}
+
+// Model with Unique Composite Key
+model Follow {
+  followerId String   @map("follower_id")
+  followedId String   @map("followed_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  follower User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followed User @relation("Followed", fields: [followedId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followedId])
+  @@map("follows")
+}
+
+// Model with JSON Field
+model Settings {
+  id        String   @id @default(cuid())
+  userId    String   @unique @map("user_id")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// Model with Multiple Indexes
+model SearchablePost {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  published   Boolean  @default(false)
+  publishedAt DateTime? @map("published_at")
+  authorId    String   @map("author_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([published, publishedAt(sort: Desc)])
+  @@index([title])
+  @@map("searchable_posts")
+}

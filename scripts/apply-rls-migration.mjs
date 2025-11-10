@@ -35,7 +35,7 @@ function log(message, color = colors.reset) {
 
 function main() {
   log('========================================', colors.blue);
-  log('Applying RLS Migration', colors.blue);
+  log('Applying RLS Migrations', colors.blue);
   log('========================================', colors.blue);
 
   // Check if DIRECT_DATABASE_URL is set
@@ -45,45 +45,54 @@ function main() {
     process.exit(1);
   }
 
-  const migrationFile = path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '001_enable_rls.sql');
+  const migrationFiles = [
+    path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '001_enable_rls.sql'),
+    path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '002_phase1_rls.sql'),
+  ];
 
-  // Check if migration file exists
-  if (!fs.existsSync(migrationFile)) {
-    log(`Error: Migration file not found at ${migrationFile}`, colors.red);
-    process.exit(1);
+  // Check if migration files exist
+  for (const migrationFile of migrationFiles) {
+    if (!fs.existsSync(migrationFile)) {
+      log(`Error: Migration file not found at ${migrationFile}`, colors.red);
+      process.exit(1);
+    }
   }
 
   try {
-    log('Applying RLS migration...', colors.blue);
+    // Apply each migration file
+    for (const migrationFile of migrationFiles) {
+      const fileName = path.basename(migrationFile);
+      log(`Applying ${fileName}...`, colors.blue);
 
-    // Execute the SQL file using psql -f (requires PostgreSQL client to be installed)
-    execSync(`psql "${process.env.DIRECT_DATABASE_URL}" -f "${migrationFile}"`, {
-      stdio: 'inherit',
-    });
+      // Execute the SQL file using psql -f (requires PostgreSQL client to be installed)
+      execSync(`psql "${process.env.DIRECT_DATABASE_URL}" -f "${migrationFile}"`, {
+        stdio: 'inherit',
+      });
 
-    log('✓ RLS migration applied successfully!', colors.green);
-    console.log('');
+      log(`✓ ${fileName} applied successfully!`, colors.green);
+      console.log('');
+    }
 
     // Verify RLS is enabled
     log('Verifying RLS is enabled...', colors.blue);
     execSync(
-      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename = 'users';"`,
+      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users', 'worlds', 'locations', 'activities');"`,
       { stdio: 'inherit' }
     );
 
     console.log('');
     log('Listing RLS policies...', colors.blue);
     execSync(
-      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE tablename = 'users';"`,
+      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE tablename IN ('users', 'worlds', 'locations', 'activities') ORDER BY tablename, policyname;"`,
       { stdio: 'inherit' }
     );
 
     console.log('');
     log('========================================', colors.green);
-    log('Migration Complete!', colors.green);
+    log('All Migrations Complete!', colors.green);
     log('========================================', colors.green);
   } catch (error) {
-    log('✗ Failed to apply RLS migration', colors.red);
+    log('✗ Failed to apply RLS migrations', colors.red);
     console.error(error.message);
     process.exit(1);
   }
