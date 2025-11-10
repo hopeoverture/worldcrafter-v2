@@ -1,39 +1,39 @@
-import { redirect, notFound } from "next/navigation"
-import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
-import { getWorld } from "../actions"
-import { prisma } from "@/lib/prisma"
-import { WorldDashboard } from "@/components/worlds/world-dashboard"
-import { Button } from "@/components/ui/button"
-import { Settings, Edit, Plus, Search } from "lucide-react"
+import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { getWorld } from "../actions";
+import { prisma } from "@/lib/prisma";
+import { WorldDashboard } from "@/components/worlds/world-dashboard";
+import { Button } from "@/components/ui/button";
+import { Settings, Edit, Plus, Search } from "lucide-react";
 
 export default async function WorldDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params
+  const { slug } = await params;
 
-  const supabase = await createClient()
+  const supabase = await createClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login")
+    redirect("/login");
   }
 
-  const result = await getWorld(slug)
+  const result = await getWorld(slug);
 
   if (!result.success || !result.data) {
-    notFound()
+    notFound();
   }
 
-  const world = result.data
+  const world = result.data;
 
   // Verify user owns this world
   if (world.userId !== user.id) {
-    notFound()
+    notFound();
   }
 
   // Fetch recent activities for this world
@@ -49,12 +49,16 @@ export default async function WorldDetailPage({
         },
       },
     },
-  })
+  });
 
-  // Get location count (Phase 1 Week 3)
+  // Get entity counts
   const locationCount = await prisma.location.count({
     where: { worldId: world.id },
-  })
+  });
+
+  const characterCount = await prisma.character.count({
+    where: { worldId: world.id },
+  });
 
   return (
     <div className="container py-8">
@@ -67,7 +71,9 @@ export default async function WorldDetailPage({
           >
             ← Back to Worlds
           </Link>
-          <h1 className="text-3xl font-bold tracking-tight truncate">{world.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight truncate">
+            {world.name}
+          </h1>
           {world.setting && (
             <p className="text-muted-foreground mt-2">{world.setting}</p>
           )}
@@ -94,10 +100,26 @@ export default async function WorldDetailPage({
         world={world}
         activities={activities}
         locationCount={locationCount}
+        characterCount={characterCount}
       />
 
       {/* Quick Actions Section */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Link
+          href={`/worlds/${world.slug}/characters/new`}
+          className="flex items-center gap-4 p-6 rounded-lg border hover:bg-accent transition-colors"
+        >
+          <div className="h-12 w-12 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center shrink-0">
+            <Plus className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Add Character</h3>
+            <p className="text-sm text-muted-foreground">
+              Create a new character
+            </p>
+          </div>
+        </Link>
+
         <Link
           href={`/worlds/${world.slug}/locations/new`}
           className="flex items-center gap-4 p-6 rounded-lg border hover:bg-accent transition-colors"
@@ -110,6 +132,19 @@ export default async function WorldDetailPage({
             <p className="text-sm text-muted-foreground">
               Create a new place in your world
             </p>
+          </div>
+        </Link>
+
+        <Link
+          href={`/worlds/${world.slug}/characters`}
+          className="flex items-center gap-4 p-6 rounded-lg border hover:bg-accent transition-colors"
+        >
+          <div className="h-12 w-12 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0">
+            <Search className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Browse Characters</h3>
+            <p className="text-sm text-muted-foreground">View all characters</p>
           </div>
         </Link>
 
@@ -127,22 +162,7 @@ export default async function WorldDetailPage({
             </p>
           </div>
         </Link>
-
-        <Link
-          href={`/worlds/${world.slug}/search`}
-          className="flex items-center gap-4 p-6 rounded-lg border hover:bg-accent transition-colors"
-        >
-          <div className="h-12 w-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
-            <Search className="h-6 w-6 text-green-600 dark:text-green-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Search World</h3>
-            <p className="text-sm text-muted-foreground">
-              Find content across locations
-            </p>
-          </div>
-        </Link>
       </div>
     </div>
-  )
+  );
 }

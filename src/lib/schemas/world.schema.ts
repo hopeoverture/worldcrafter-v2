@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 /**
  * World validation schemas for WorldCrafter
@@ -13,10 +13,10 @@ export const genreEnum = z.enum([
   "HISTORICAL",
   "HORROR",
   "CUSTOM",
-])
+]);
 
 // Privacy enum matching Prisma schema
-export const privacyEnum = z.enum(["PRIVATE", "UNLISTED", "PUBLIC"])
+export const privacyEnum = z.enum(["PRIVATE", "UNLISTED", "PUBLIC"]);
 
 /**
  * Schema for creating a new world (API/Server Actions)
@@ -40,9 +40,14 @@ export const createWorldSchema = z.object({
     .optional()
     .nullable(),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
-  coverUrl: z.string().url("Invalid image URL").optional().nullable(),
+  coverUrl: z
+    .string()
+    .url("Invalid image URL")
+    .or(z.literal(""))
+    .optional()
+    .nullable(),
   privacy: privacyEnum.default("PRIVATE"),
-})
+});
 
 /**
  * Schema for world forms (UI)
@@ -62,13 +67,18 @@ export const createWorldFormSchema = z.object({
     .nullable(),
   setting: z
     .string()
-    .max(500, "Setting summary must be 500 characters or less")
+    .max(5000, "Setting summary must be 500 characters or less")
     .optional()
     .nullable(),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
-  coverUrl: z.string().url("Invalid image URL").optional().nullable(),
+  coverUrl: z
+    .string()
+    .url("Invalid image URL")
+    .or(z.literal(""))
+    .optional()
+    .nullable(),
   privacy: privacyEnum,
-})
+});
 
 /**
  * Schema for updating an existing world
@@ -93,9 +103,14 @@ export const updateWorldSchema = z.object({
     .optional()
     .nullable(),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
-  coverUrl: z.string().url("Invalid image URL").optional().nullable(),
+  coverUrl: z
+    .string()
+    .url("Invalid image URL")
+    .or(z.literal(""))
+    .optional()
+    .nullable(),
   privacy: privacyEnum.optional(),
-})
+});
 
 /**
  * Schema for world filters (used in getWorlds)
@@ -106,11 +121,11 @@ export const worldFiltersSchema = z.object({
   search: z.string().optional(),
   limit: z.number().int().positive().max(100).default(20),
   offset: z.number().int().nonnegative().default(0),
-})
+});
 
 // Type exports
-export type CreateWorldInput = z.infer<typeof createWorldSchema>
-export type UpdateWorldInput = z.infer<typeof updateWorldSchema>
-export type WorldFilters = z.infer<typeof worldFiltersSchema>
-export type Genre = z.infer<typeof genreEnum>
-export type Privacy = z.infer<typeof privacyEnum>
+export type CreateWorldInput = z.infer<typeof createWorldSchema>;
+export type UpdateWorldInput = z.infer<typeof updateWorldSchema>;
+export type WorldFilters = z.infer<typeof worldFiltersSchema>;
+export type Genre = z.infer<typeof genreEnum>;
+export type Privacy = z.infer<typeof privacyEnum>;

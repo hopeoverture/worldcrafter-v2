@@ -1,24 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { loginAction } from '@/app/login/actions';
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { loginAction } from "@/app/login/actions";
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,24 +32,22 @@ export function LoginForm() {
     setIsLoading(true);
     setError(null);
 
-    try {
-      const result = await loginAction(data);
+    const result = await loginAction(data);
 
-      if (result.success) {
-        router.push('/dashboard');
-        router.refresh();
-      } else {
-        setError(result.error || 'Login failed. Please try again.');
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
+    // If we get here with a result, it means login failed
+    // (successful login redirects in the server action and never returns)
+    if (result && !result.success) {
+      setError(result.error || "Login failed. Please try again.");
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="mt-8 space-y-6"
+      noValidate
+    >
       <div className="space-y-4 rounded-md shadow-sm">
         <div>
           <Label htmlFor="email" className="sr-only">
@@ -63,8 +59,8 @@ export function LoginForm() {
             autoComplete="email"
             placeholder="Email address"
             disabled={isLoading}
-            {...register('email')}
-            className={errors.email ? 'border-red-500' : ''}
+            {...register("email")}
+            className={errors.email ? "border-red-500" : ""}
           />
           {errors.email && (
             <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -81,8 +77,8 @@ export function LoginForm() {
             autoComplete="current-password"
             placeholder="Password"
             disabled={isLoading}
-            {...register('password')}
-            className={errors.password ? 'border-red-500' : ''}
+            {...register("password")}
+            className={errors.password ? "border-red-500" : ""}
           />
           {errors.password && (
             <p className="mt-1 text-sm text-red-600">
@@ -99,12 +95,8 @@ export function LoginForm() {
       )}
 
       <div>
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="w-full"
-        >
-          {isLoading ? 'Signing in...' : 'Sign in'}
+        <Button type="submit" disabled={isLoading} className="w-full">
+          {isLoading ? "Signing in..." : "Sign in"}
         </Button>
       </div>
     </form>

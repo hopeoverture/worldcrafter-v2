@@ -1,8 +1,9 @@
-'use server';
+"use server";
 
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
 
 const signupSchema = z.object({
   name: z.string().min(2),
@@ -41,31 +42,31 @@ export async function signupAction(values: SignupInput) {
     if (!data.user) {
       return {
         success: false,
-        error: 'Signup failed',
+        error: "Signup failed",
       };
     }
 
     // Revalidate the layout to update the UI
-    revalidatePath('/', 'layout');
+    revalidatePath("/", "layout");
 
-    return {
-      success: true,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-      },
-    };
+    // Redirect to dashboard after successful signup
+    redirect("/dashboard");
   } catch (error) {
+    // Re-throw redirect errors (they should not be caught)
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: 'Invalid input data',
+        error: "Invalid input data",
       };
     }
 
     return {
       success: false,
-      error: 'An unexpected error occurred',
+      error: "An unexpected error occurred",
     };
   }
 }

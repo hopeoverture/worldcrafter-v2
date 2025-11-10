@@ -24,7 +24,7 @@ BEGIN
     setweight(to_tsvector('english', COALESCE(NEW.population, '')), 'D');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- Step 3: Create trigger to automatically update search_vector on INSERT or UPDATE
 DROP TRIGGER IF EXISTS locations_search_vector_trigger ON locations;

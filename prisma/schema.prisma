@@ -35,8 +35,9 @@ model World {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   locations  Location[]
+  characters Character[]
   activities Activity[]
 
   @@map("worlds")
@@ -68,6 +69,32 @@ model Location {
 
   @@unique([worldId, slug])
   @@map("locations")
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  worldId     String
+  name        String   @db.VarChar(100)
+  slug        String
+  role        String?  @db.VarChar(100)
+  species     String?  @db.VarChar(100)
+  age         String?  @db.VarChar(50)
+  gender      String?  @db.VarChar(50)
+  appearance  String?  @db.Text
+  personality String?  @db.Text
+  backstory   String?  @db.Text
+  goals       String?  @db.Text
+  fears       String?  @db.Text
+  attributes  Json?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, slug])
+  @@index([worldId, updatedAt])
+  @@map("characters")
 }
 
 model Activity {
@@ -105,4 +132,5 @@ enum Privacy {
 enum EntityType {
   WORLD
   LOCATION
+  CHARACTER
 }

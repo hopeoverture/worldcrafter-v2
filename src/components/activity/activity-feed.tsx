@@ -1,65 +1,96 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { type Activity, type User, type EntityType } from "@prisma/client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Clock, Globe, MapPin, FileEdit, Trash2, Plus } from "lucide-react"
+import { useState } from "react";
+import { type Activity, type EntityType } from "@prisma/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Clock,
+  Globe,
+  MapPin,
+  User as UserIcon,
+  FileEdit,
+  Trash2,
+  Plus,
+} from "lucide-react";
 
 export type ActivityWithUser = Activity & {
   user: {
-    name: string | null
-    email: string
-  }
-}
+    name: string | null;
+    email: string;
+  };
+};
 
 interface ActivityFeedProps {
-  activities: ActivityWithUser[]
-  worldId: string
+  activities: ActivityWithUser[];
+  worldId?: string; // Optional for future filtering
 }
 
 const entityIcons: Record<EntityType, React.ReactNode> = {
   WORLD: <Globe className="w-4 h-4" />,
   LOCATION: <MapPin className="w-4 h-4" />,
-}
+  CHARACTER: <UserIcon className="w-4 h-4" />,
+};
 
 const actionIcons: Record<string, React.ReactNode> = {
   created: <Plus className="w-4 h-4 text-green-600" />,
   updated: <FileEdit className="w-4 h-4 text-blue-600" />,
   deleted: <Trash2 className="w-4 h-4 text-red-600" />,
-}
+};
 
 const actionLabels: Record<string, string> = {
   created: "Created",
   updated: "Updated",
   deleted: "Deleted",
-}
+};
 
 function formatActivityTime(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / (1000 * 60))
-  const diffHours = Math.floor(diffMins / 60)
-  const diffDays = Math.floor(diffHours / 24)
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return "Just now"
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
 
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  })
+  });
 }
 
-export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
-  const [showAll, setShowAll] = useState(false)
+export function ActivityFeed({ activities }: ActivityFeedProps) {
+  const [showAll, setShowAll] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
 
-  const displayedActivities = showAll ? activities : activities.slice(0, 5)
+  // Filter activities by entity type
+  const filteredActivities = activities.filter((activity) => {
+    if (filter === "all") return true;
+    return activity.entityType === filter;
+  });
+
+  const displayedActivities = showAll
+    ? filteredActivities
+    : filteredActivities.slice(0, 5);
 
   if (activities.length === 0) {
     return (
@@ -77,16 +108,33 @@ export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
-        <CardDescription>
-          {activities.length} recent change{activities.length === 1 ? "" : "s"}
-        </CardDescription>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1.5">
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              {filteredActivities.length} recent change
+              {filteredActivities.length === 1 ? "" : "s"}
+              {filter !== "all" && ` (filtered)`}
+            </CardDescription>
+          </div>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Activity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Activity</SelectItem>
+              <SelectItem value="WORLD">Worlds Only</SelectItem>
+              <SelectItem value="CHARACTER">Characters Only</SelectItem>
+              <SelectItem value="LOCATION">Locations Only</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px] pr-4">
@@ -99,7 +147,8 @@ export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
                 {/* Icon */}
                 <div className="flex items-start">
                   <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    {actionIcons[activity.action] || entityIcons[activity.entityType]}
+                    {actionIcons[activity.action] ||
+                      entityIcons[activity.entityType]}
                   </div>
                 </div>
 
@@ -124,16 +173,17 @@ export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
 
                   {activity.metadata &&
                     typeof activity.metadata === "object" &&
-                    Object.keys(activity.metadata as Record<string, unknown>).length > 0 && (
+                    Object.keys(activity.metadata as Record<string, unknown>)
+                      .length > 0 && (
                       <div className="text-xs text-muted-foreground mt-2">
-                        {Object.entries(activity.metadata as Record<string, unknown>).map(
-                          ([key, value]) => (
-                            <div key={key}>
-                              <span className="capitalize">{key}:</span>{" "}
-                              {String(value)}
-                            </div>
-                          )
-                        )}
+                        {Object.entries(
+                          activity.metadata as Record<string, unknown>
+                        ).map(([key, value]) => (
+                          <div key={key}>
+                            <span className="capitalize">{key}:</span>{" "}
+                            {String(value)}
+                          </div>
+                        ))}
                       </div>
                     )}
 
@@ -145,7 +195,7 @@ export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
             ))}
           </div>
 
-          {activities.length > 5 && !showAll && (
+          {filteredActivities.length > 5 && !showAll && (
             <div className="mt-4">
               <Button
                 variant="outline"
@@ -153,7 +203,7 @@ export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
                 onClick={() => setShowAll(true)}
                 className="w-full"
               >
-                Show All ({activities.length})
+                Show All ({filteredActivities.length})
               </Button>
             </div>
           )}
@@ -173,5 +223,5 @@ export function ActivityFeed({ activities, worldId }: ActivityFeedProps) {
         </ScrollArea>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -29,6 +29,14 @@ CREATE POLICY "Users can update their own profile"
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
+-- Policy: Allow trigger to insert new users
+-- This policy allows the handle_new_user() trigger to create user records
+-- No auth check needed since the trigger runs with SECURITY DEFINER
+CREATE POLICY "Allow user creation via trigger"
+  ON users
+  FOR INSERT
+  WITH CHECK (true);
+
 -- =====================================================
 -- Trigger to handle new user creation
 -- =====================================================
@@ -38,7 +46,7 @@ CREATE POLICY "Users can update their own profile"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, created_at, updated_at)
+  INSERT INTO public.users (id, email, "createdAt", "updatedAt")
   VALUES (
     NEW.id,
     NEW.email,
@@ -47,7 +55,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Create trigger on auth.users table
 -- This will fire after a new user is inserted into auth.users
@@ -61,7 +69,7 @@ CREATE TRIGGER on_auth_user_created
 -- Grant permissions
 -- =====================================================
 -- Grant authenticated users access to the users table
-GRANT SELECT, UPDATE ON users TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON users TO authenticated;
 GRANT USAGE ON SCHEMA public TO authenticated;
 
 -- =====================================================

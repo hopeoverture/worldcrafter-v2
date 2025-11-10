@@ -1,8 +1,9 @@
-'use server';
+"use server";
 
-import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -28,38 +29,38 @@ export async function loginAction(values: LoginInput) {
     if (error) {
       return {
         success: false,
-        error: error.message,
+        error: `Invalid login credentials. Please check your email and password.`,
       };
     }
 
     if (!data.user) {
       return {
         success: false,
-        error: 'Login failed',
+        error: "Login failed. Please try again.",
       };
     }
 
     // Revalidate the layout to update the UI
-    revalidatePath('/', 'layout');
+    revalidatePath("/", "layout");
 
-    return {
-      success: true,
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-      },
-    };
+    // Redirect to dashboard after successful login
+    redirect("/dashboard");
   } catch (error) {
+    // Re-throw redirect errors (they should not be caught)
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
+
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        error: 'Invalid input data',
+        error: "Invalid input data",
       };
     }
 
     return {
       success: false,
-      error: 'An unexpected error occurred',
+      error: "An unexpected error occurred",
     };
   }
 }

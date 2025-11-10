@@ -1,14 +1,26 @@
-import { type World } from "@prisma/client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ActivityFeed, type ActivityWithUser } from "@/components/activity/activity-feed"
-import { Calendar, MapPin, Eye, Globe, Lock } from "lucide-react"
-import ReactMarkdown from "react-markdown"
+import { type World } from "@prisma/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  ActivityFeed,
+  type ActivityWithUser,
+} from "@/components/activity/activity-feed";
+import { Calendar, MapPin, Eye, Globe, Lock, Users, Plus } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import Link from "next/link";
 
 interface WorldDashboardProps {
-  world: World
-  activities: ActivityWithUser[]
-  locationCount: number
+  world: World;
+  activities: ActivityWithUser[];
+  locationCount: number;
+  characterCount: number;
 }
 
 const genreLabels: Record<string, string> = {
@@ -18,31 +30,93 @@ const genreLabels: Record<string, string> = {
   HISTORICAL: "Historical",
   HORROR: "Horror",
   CUSTOM: "Custom",
-}
+};
 
 const privacyIcons = {
   PRIVATE: <Lock className="w-3 h-3" />,
   UNLISTED: <Eye className="w-3 h-3" />,
   PUBLIC: <Globe className="w-3 h-3" />,
-}
+};
 
 const privacyLabels = {
   PRIVATE: "Private",
   UNLISTED: "Unlisted",
   PUBLIC: "Public",
-}
+};
 
 export function WorldDashboard({
   world,
   activities,
   locationCount,
+  characterCount,
 }: WorldDashboardProps) {
+  const totalEntities = locationCount + characterCount;
+  const isEmpty = totalEntities === 0;
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Left Column: Stats and Info */}
       <div className="space-y-6 lg:col-span-2">
+        {/* Getting Started Guide (shown when world is empty) */}
+        {isEmpty && (
+          <Card className="border-2 border-dashed">
+            <CardHeader>
+              <CardTitle>Welcome to your new world! 🌍</CardTitle>
+              <CardDescription>
+                Let&apos;s start building. Here are some suggestions to get you
+                started:
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ol className="list-decimal list-inside space-y-2 mb-4">
+                <li>
+                  Create a <strong>Location</strong> (e.g., a city, region, or
+                  planet)
+                </li>
+                <li>
+                  Add a <strong>Character</strong> (protagonist, villain, or
+                  NPC)
+                </li>
+                <li>
+                  Use <strong>⌘K</strong> to quickly search and navigate your
+                  world
+                </li>
+              </ol>
+              <div className="flex gap-2 flex-wrap">
+                <Button asChild>
+                  <Link href={`/worlds/${world.slug}/locations/new`}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Location
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href={`/worlds/${world.slug}/characters/new`}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create First Character
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Cards */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Characters</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{characterCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {characterCount === 0
+                  ? "No characters yet"
+                  : `${characterCount} character${characterCount === 1 ? "" : "s"}`}
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Locations</CardTitle>
@@ -85,7 +159,9 @@ export function WorldDashboard({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Last Updated</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Last Updated
+              </CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -150,16 +226,16 @@ export function WorldDashboard({
                   Custom Metadata
                 </p>
                 <div className="space-y-1 text-sm">
-                  {Object.entries(world.metadata as Record<string, unknown>).map(
-                    ([key, value]) => (
-                      <div key={key} className="flex justify-between">
-                        <span className="text-muted-foreground capitalize">
-                          {key.replace(/([A-Z])/g, " $1").trim()}:
-                        </span>
-                        <span className="font-medium">{String(value)}</span>
-                      </div>
-                    )
-                  )}
+                  {Object.entries(
+                    world.metadata as Record<string, unknown>
+                  ).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-muted-foreground capitalize">
+                        {key.replace(/([A-Z])/g, " $1").trim()}:
+                      </span>
+                      <span className="font-medium">{String(value)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -172,5 +248,5 @@ export function WorldDashboard({
         <ActivityFeed activities={activities} worldId={world.id} />
       </div>
     </div>
-  )
+  );
 }

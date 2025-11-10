@@ -49,6 +49,7 @@ function main() {
     path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '001_enable_rls.sql'),
     path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '002_phase1_rls.sql'),
     path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '003_location_fulltext_search.sql'),
+    path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '004_character_rls.sql'),
   ];
 
   // Check if migration files exist
@@ -77,14 +78,14 @@ function main() {
     // Verify RLS is enabled
     log('Verifying RLS is enabled...', colors.blue);
     execSync(
-      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users', 'worlds', 'locations', 'activities');"`,
+      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users', 'worlds', 'locations', 'characters', 'activities');"`,
       { stdio: 'inherit' }
     );
 
     console.log('');
     log('Listing RLS policies...', colors.blue);
     execSync(
-      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE tablename IN ('users', 'worlds', 'locations', 'activities') ORDER BY tablename, policyname;"`,
+      `psql "${process.env.DIRECT_DATABASE_URL}" -c "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE tablename IN ('users', 'worlds', 'locations', 'characters', 'activities') ORDER BY tablename, policyname;"`,
       { stdio: 'inherit' }
     );
 
