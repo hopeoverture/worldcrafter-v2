@@ -20,6 +20,16 @@ export default async function DashboardPage() {
   const worldsResult = await getWorlds()
   const worlds = worldsResult.success ? worldsResult.data ?? [] : []
 
+  // Get total location count across all worlds
+  const { prisma } = await import("@/lib/prisma")
+  const totalLocations = await prisma.location.count({
+    where: {
+      world: {
+        userId: user.id,
+      },
+    },
+  })
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-8">
@@ -92,9 +102,11 @@ export default async function DashboardPage() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{totalLocations}</div>
               <p className="text-xs text-muted-foreground">
-                Coming in Phase 1 Week 3
+                {totalLocations === 0
+                  ? "Create locations in your worlds"
+                  : "Across all your worlds"}
               </p>
             </CardContent>
           </Card>
@@ -147,7 +159,7 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-4 rounded-lg border p-4 opacity-50">
+                <div className="flex gap-4 rounded-lg border p-4">
                   <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
                     <svg
                       className="h-5 w-5 text-blue-600 dark:text-blue-400"
@@ -166,7 +178,7 @@ export default async function DashboardPage() {
                   <div>
                     <h3 className="font-semibold">Add Locations</h3>
                     <p className="text-sm text-muted-foreground">
-                      Coming soon - organize your world's places
+                      Create your first world, then add locations
                     </p>
                   </div>
                 </div>

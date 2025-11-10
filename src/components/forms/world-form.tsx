@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createWorldSchema, type CreateWorldInput, type Genre, type Privacy } from "@/lib/schemas/world.schema"
+import { createWorldFormSchema, type CreateWorldInput, type Genre, type Privacy } from "@/lib/schemas/world.schema"
 import { createWorld, updateWorld } from "@/app/worlds/actions"
 import type { World } from "@prisma/client"
 
@@ -76,7 +76,7 @@ export function WorldForm({ world, mode }: WorldFormProps) {
   const [error, setError] = useState<string | null>(null)
 
   const form = useForm<CreateWorldInput>({
-    resolver: zodResolver(createWorldSchema),
+    resolver: zodResolver(createWorldFormSchema),
     defaultValues: {
       name: world?.name ?? "",
       genre: (world?.genre as Genre) ?? "CUSTOM",

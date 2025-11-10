@@ -63,7 +63,7 @@ model Location {
   updatedAt   DateTime @updatedAt
 
   world    World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
-  parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id])
+  parent   Location?  @relation("LocationHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
   children Location[] @relation("LocationHierarchy")
 
   @@unique([worldId, slug])

@@ -19,7 +19,8 @@ export const genreEnum = z.enum([
 export const privacyEnum = z.enum(["PRIVATE", "UNLISTED", "PUBLIC"])
 
 /**
- * Schema for creating a new world
+ * Schema for creating a new world (API/Server Actions)
+ * Has defaults for genre and privacy to handle minimal API calls
  */
 export const createWorldSchema = z.object({
   name: z
@@ -41,6 +42,32 @@ export const createWorldSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
   coverUrl: z.string().url("Invalid image URL").optional().nullable(),
   privacy: privacyEnum.default("PRIVATE"),
+})
+
+/**
+ * Schema for world forms (UI)
+ * Requires genre and privacy to be explicitly set (no defaults)
+ */
+export const createWorldFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, "World name is required")
+    .max(100, "World name must be 100 characters or less")
+    .trim(),
+  genre: genreEnum,
+  description: z
+    .string()
+    .max(5000, "Description must be 5000 characters or less")
+    .optional()
+    .nullable(),
+  setting: z
+    .string()
+    .max(500, "Setting summary must be 500 characters or less")
+    .optional()
+    .nullable(),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
+  coverUrl: z.string().url("Invalid image URL").optional().nullable(),
+  privacy: privacyEnum,
 })
 
 /**

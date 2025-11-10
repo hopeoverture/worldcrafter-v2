@@ -48,6 +48,7 @@ function main() {
   const migrationFiles = [
     path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '001_enable_rls.sql'),
     path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '002_phase1_rls.sql'),
+    path.join(__dirname, '..', 'prisma', 'migrations', 'sql', '003_location_fulltext_search.sql'),
   ];
 
   // Check if migration files exist
