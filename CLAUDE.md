@@ -32,6 +32,14 @@ Project-specific guidance for Claude Code. Keep concise and focused on WorldCraf
 - `npm run lint` - ESLint
 - `npm run format` - Prettier
 
+**ESLint Configuration**:
+
+- Uses modern `eslint.config.mjs` (ESLint 9+ flat config)
+- **NO `.eslintignore` file** - deprecated in ESLint 9+
+- Ignored paths are in `globalIgnores([...])` in `eslint.config.mjs`
+- Currently ignored: `.next/**`, `out/**`, `build/**`, `next-env.d.ts`, `.claude/**`
+- To add ignore patterns: Add to the `globalIgnores` array, NOT a separate file
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router) + React 19
@@ -215,6 +223,7 @@ if (!user) redirect("/login");
 8. **Testing**: Never test against production DB. Use `.env.test` database
 9. **Server Actions**: Always validate on server even if validated on client
 10. **API routes**: Don't call from server components - import directly
+11. **ESLint ignores**: Don't create `.eslintignore` - use `globalIgnores([...])` in `eslint.config.mjs`
 
 ## Project-Specific Quirks
 
